@@ -14,7 +14,14 @@ extra = {}
 readme = os.path.join(os.path.dirname(sys.argv[0]), 'README.rst')
 requirements = os.path.join(os.path.dirname(sys.argv[0]), 'requirements.txt')
 
-install_requires = open(requirements).readlines(),
+install_requires = [
+    "bottle==0.12.7",
+    "Pygments==2.0.1",
+    "SQLAlchemy==0.9.8",
+    "bottle-sqlalchemy==0.4",
+    "bottle-sqlite==0.1.2",
+    "IPy==0.81"
+]
 
 if sys.version_info >= (3,):
     extra['use_2to3'] = True

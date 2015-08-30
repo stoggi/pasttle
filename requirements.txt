@@ -1,7 +1,1 @@
-bottle==0.12.7
-Pygments==2.0.1
-SQLAlchemy==0.9.8
-bottle-sqlalchemy==0.4
-bottle-sqlite==0.1.2
-IPy==0.81
 -e .
