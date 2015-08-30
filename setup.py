@@ -20,7 +20,8 @@ install_requires = [
     "SQLAlchemy==0.9.8",
     "bottle-sqlalchemy==0.4",
     "bottle-sqlite==0.1.2",
-    "IPy==0.81"
+    "IPy==0.81",
+    "gunicorn==19.3.0"
 ]
 
 if sys.version_info >= (3,):

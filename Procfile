@@ -1,1 +1,1 @@
-web: pastle-server.py
+web: gunicorn pasttle.server:application --log-file=-
