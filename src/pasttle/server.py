@@ -41,6 +41,22 @@ db_plugin = sqlaplugin.SQLAlchemyPlugin(
     model.engine, model.Base.metadata, create=True
 )
 
+# Redirect to HTTPS plugin (http://stackoverflow.com/a/20311393/2428039)
+def redirect_http_to_https(callback):
+    '''Bottle plugin that redirects all http requests to https'''
+
+    def wrapper(*args, **kwargs):
+        scheme = bottle.request.urlparts[0]
+        if scheme == 'http':
+            # request is http; redirect to https
+            bottle.redirect(bottle.request.url.replace('http', 'https', 1))
+        else:
+            # request is already https; okay to proceed
+            return callback(*args, **kwargs)
+    return wrapper
+
+application.install(redirect_http_to_https)
+
 application.install(db_plugin)
 
 
