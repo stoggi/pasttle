@@ -10,6 +10,15 @@
         <a href="{{url}}/recent">Link</a>
       </div><!--end of section-->
       <div class="section separator">
+        <h2>Login</h2>
+        <p>Login to create private pastes.</p>
+        <form action="{{url}}/login" method="POST">
+        <input type="text" name="username" placeholder="username"/>
+        <input type="password" name="password" placeholder="password"/>
+        <input type="submit" text="Login"/>
+        </form>
+      </div><!--end of section-->
+      <div class="section separator">
         <h2>CLI Examples:</h2>
         <div>
           <h3>To post the output of a given command:</h3>
