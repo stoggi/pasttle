@@ -206,7 +206,7 @@ def recent(db):
         'recent', dict(
             pastes=db.query(
                 model.Paste.id, model.Paste.filename, model.Paste.mimetype,
-                model.Paste.created, model.Paste.password
+                model.Paste.created, model.Paste.is_private
             ).order_by(
                 model.Paste.id.desc()
             ).limit(items).all(),
@@ -245,12 +245,11 @@ def post(db):
     upload = form.get('upload')
     filename = form.get('filename') if form.get('filename') != '-' else None
     syntax = form.get('syntax') if form.get('syntax') != '-' else None
-    password = form.get('password')
     try:
         parent = int(form.get('parent')) if form.get('parent') else None
     except Exception as e:
         util.log.warn('Parent value does not seem like an int: %s' % (e,))
-    is_encrypted = bool(form.get('is_encrypted'))
+    is_private = bool(form.get('is_private'))
     redirect = bool(form.get('redirect'))
     util.log.debug('Filename: {0}, Syntax: {1}'.format(filename, syntax,))
     default_lexer = lexers.get_lexer_for_mimetype('text/plain')
@@ -294,8 +293,8 @@ def post(db):
                 )
                 ip = None
         paste = model.Paste(
-            content=upload, mimetype=mime, is_encrypted=is_encrypted,
-            password=password, ip=ip, filename=filename,
+            content=upload, mimetype=mime, is_private=is_private,
+            username=bottle.request.username, ip=ip, filename=filename,
             lexer=lx, parent=parent
         )
         util.log.debug(paste)
@@ -316,6 +315,8 @@ def _get_paste(db, id):
 
     try:
         paste = db.query(model.Paste).filter_by(id=id).one()
+        if paste.is_private and paste.username != bottle.request.username:
+            paste = None
     except:
         paste = None
     return paste
@@ -327,7 +328,7 @@ def _add_header_metadata(paste):
     """
 
     bottle.response.set_header('X-Pasttle-Creation-Date', paste.created)
-    bottle.response.set_header('X-Pasttle-Protected', bool(paste.password))
+    bottle.response.set_header('X-Pasttle-Protected', bool(paste.is_private))
     bottle.response.set_header('X-Pasttle-Mime-Type', paste.mimetype)
     if paste.lexer:
         bottle.response.set_header('X-Pasttle-Lexer', paste.lexer)
@@ -400,11 +401,6 @@ def showdiff(db, parent, id):
     if not that:
         return bottle.HTTPError(404, 'Parent paste does not exist')
 
-    if this.password or that.password:
-        return bottle.HTTPError(
-            403, 'Can only show differences between unprotected entries'
-        )
-
     diff = '\n'.join([_ for _ in difflib.unified_diff(
         that.content.splitlines(),
         this.content.splitlines(),
@@ -446,31 +442,6 @@ def showpaste(db, id):
     lang = bottle.request.query.lang or None
     if not paste:
         return bottle.HTTPError(404, 'This paste does not exist')
-    form = bottle.request.forms
-    password = form.get('password')
-    if paste.password:
-        if not password:
-            return template(
-                'password_protect',
-                url=get_url(),
-                title=util.conf.get(util.cfg_section, 'title'),
-                version=pasttle.__version__,
-            )
-        is_encrypted = bool(form.get('is_encrypted'))
-        if is_encrypted:
-            match = password
-        else:
-            match = hashlib.sha1(password.encode()).hexdigest()
-        util.log.debug(
-            '{0} == {1} ? {2}'.format(
-                match, paste.password, match == paste.password,
-            )
-        )
-        if match == paste.password:
-            bottle.response.content_type = 'text/html'
-            return _pygmentize(paste, lang)
-        else:
-            return bottle.HTTPError(401, 'Wrong password provided')
     else:
         return _pygmentize(paste, lang)
 
@@ -488,32 +459,6 @@ def showraw(db, id):
     paste = _get_paste(db, id)
     if not paste:
         return bottle.HTTPError(404, 'This paste does not exist')
-    form = bottle.request.forms
-    if paste.password:
-        password = form.get('password')
-        if not password:
-            return template(
-                'password_protect',
-                url=get_url(),
-                title=util.conf.get(util.cfg_section, 'title'),
-                version=pasttle.__version__,
-            )
-        is_encrypted = bool(form.get('is_encrypted'))
-        if is_encrypted:
-            match = password
-        else:
-            match = hashlib.sha1(password.encode()).hexdigest()
-        util.log.debug(
-            '{0} == {1} ? {2}'.format(
-                match, paste.password, match == paste.password,
-            )
-        )
-        if match == paste.password:
-            _add_header_metadata(paste)
-            bottle.response.content_type = paste.mimetype
-            return paste.content
-        else:
-            return bottle.HTTPError(401, 'Wrong password provided')
     else:
         _add_header_metadata(paste)
         bottle.response.content_type = paste.mimetype
@@ -533,50 +478,21 @@ def edit(db, id):
         return bottle.HTTPError(404, 'This paste does not exist')
     post_args = dict(
         title='Create new entry based on #{0}'.format(paste.id),
-        password=paste.password or u'',
+        is_private=paste.is_private,
         content=paste.content,
         checked='',
         syntax=lexers.get_lexer_for_mimetype(paste.mimetype).aliases[0],
         parent=id,
         url=get_url(),
         version=pasttle.__version__,
+        username=bottle.request.username,
     )
-
-    form = bottle.request.forms
-    if paste.password:
-        password = form.get('password')
-
-        if not password:
-            return template(
-                'password_protect',
-                url=get_url(),
-                title=util.conf.get(util.cfg_section, 'title'),
-                version=pasttle.__version__,
-            )
-
-        is_encrypted = bool(form.get('is_encrypted'))
-        if not is_encrypted:
-            match = hashlib.sha1(password.encode()).hexdigest()
-        else:
-            match = password
-        util.log.debug(
-            '{0} == {1} ? {2}'.format(
-                match, paste.password,
-                match == paste.password,
-            )
-        )
-
-        if match == paste.password:
-            post_args['checked'] = 'checked="checked"'
-            return template('post', post_args)
-        else:
-            return bottle.HTTPError(401, 'Wrong password provided')
-    else:
-        return template('post', post_args)
+    return template('post', post_args)
 
 
 def main():
     util.log.info('Using Python {0}'.format(sys.version, ))
+    application.uninstall(redirect_http_to_https)
     bottle.run(
         application, host=util.conf.get(util.cfg_section, 'bind'),
         port=util.conf.getint(util.cfg_section, 'port'),

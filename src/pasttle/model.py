@@ -38,7 +38,8 @@ class Paste(Base):
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
     content = sqlalchemy.Column(sqlalchemy.Text, nullable=False)
     filename = sqlalchemy.Column(sqlalchemy.String(128))
-    password = sqlalchemy.Column(sqlalchemy.String(40))
+    username = sqlalchemy.Column(sqlalchemy.String(128))
+    is_private = sqlalchemy.Column(sqlalchemy.Boolean())
     mimetype = sqlalchemy.Column(sqlalchemy.String(64), nullable=False)
     lexer = sqlalchemy.Column(sqlalchemy.String(64))
     created = sqlalchemy.Column(
@@ -49,7 +50,7 @@ class Paste(Base):
 
     def __init__(
         self, content, mimetype, filename=None,
-        password=None, is_encrypted=True, ip=None,
+        username=None, is_private=False, ip=None,
         lexer=None, parent=None
     ):
 
@@ -57,18 +58,18 @@ class Paste(Base):
         self.mimetype = mimetype
         if filename and filename.strip():
             self.filename = os.path.basename(filename).strip()[:128]
-        if password:
-            if is_encrypted:
-                self.password = password[:40]
-            else:
-                self.password = hashlib.sha1(password.encode()).hexdigest()
+        if username:
+            self.username = username[:128]
+        else:
+            self.username = ''
+        self.is_private = is_private
         self.ip = ip.encode() if ip else None
         self.lexer = lexer
         self.parent = parent
 
     def __repr__(self):
-        return u'<Paste {0} ({1}), protected={2}>'.format(
-            self.filename, self.lexer or self.mimetype, bool(self.password))
+        return u'<Paste {0} ({1}), private={2}>'.format(
+            self.filename, self.lexer or self.mimetype, bool(self.is_private))
 
 
 engine = sqlalchemy.create_engine(

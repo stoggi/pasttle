@@ -9,14 +9,12 @@
           <label for="syntax">Force syntax: </label>
           <input class="field" placeholder="text/plain" id="syntax" name="syntax" value="{{syntax}}" />
         </div>
+        %if username:
         <div class="field">
-          <label for="password">Password protect this paste:</label>
-          <input class="field" placeholder="Password" id="password" type="password" name="password" maxlength="40" value="{{password}}" />
+          <label for="is_private">Is the paste private? </label>
+          <input type="checkbox" name="is_private" id="is_private" {{checked}}/>
         </div>
-        <div class="field">
-          <label for="is_encrypted">Is the password encrypted? </label>
-          <input type="checkbox" name="is_encrypted" id="is_encrypted" {{checked}}/>
-        </div>
+        %end
         <div class="field separator">
           <input type="hidden" name="redirect" value="yes"/>
           <input type="hidden" name="parent" value="{{get('parent', '')}}"/>
@@ -24,12 +22,7 @@
         </div>
         <div class="footer smalltext">
           <p class="note">
-            Keep in mind that passwords are transmitted in clear-text. The
-            password is not cyphered on the client-side because shipping a
-            SHA1 javascript library is perhaps too much, if you check the
-            "Is encrypted?" checkbox make sure your password is cyphered
-            with SHA1. Perhaps you better use the readily available
-            <a href="https://raw.github.com/thekad/pasttle/master/pasttle.bashrc">Console helper</a>?
+            Note, private pastes can only be viewed by the current user.
           </p>
         </div><!--end of footer-->
       </form>

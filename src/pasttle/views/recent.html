@@ -4,7 +4,7 @@
         <div class="section">
           <ul>
           % for paste in pastes:
-            <li><a href="{{paste.id}}">Paste #{{paste.id}}, {{paste.filename or u''}} ({{paste.mimetype}}) {{paste.created}} (Protected: {{bool(paste.password)}})</a></li>
+            <li><a href="{{paste.id}}">Paste #{{paste.id}}, {{paste.filename or u''}} ({{paste.mimetype}}) {{paste.created}} (Private: {{bool(paste.is_private)}})</a></li>
           % end
           </ul>
         </div>
