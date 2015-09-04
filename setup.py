@@ -17,11 +17,13 @@ requirements = os.path.join(os.path.dirname(sys.argv[0]), 'requirements.txt')
 install_requires = [
     "bottle==0.12.7",
     "Pygments==2.0.1",
-    "SQLAlchemy==0.9.8",
+    "SQLAlchemy==1.0.8",
     "bottle-sqlalchemy==0.4",
     "bottle-sqlite==0.1.2",
     "IPy==0.81",
-    "gunicorn==19.3.0"
+    "gunicorn==19.3.0",
+    "sqlalchemy-utils==0.30.17",
+    "passlib==1.6.5"
 ]
 
 if sys.version_info >= (3,):

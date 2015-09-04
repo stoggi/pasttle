@@ -17,6 +17,9 @@ vim:set tabstop=2 softtabstop=2 expandtab shiftwidth=2 fileencoding=utf-8:
       <div class="title">
         <h1><a href="{{url}}">Pasttle</a></h1>
         <h2>{{title}}</h2>
+        %if username:
+          <p>Hello {{!username}}! <a href="{{url}}/logout">Logout</a></p>
+        %end
       </div>
 <!-- Content starts here -->
 {{!base}}<!-- Content ends here -->

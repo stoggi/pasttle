@@ -19,6 +19,7 @@ from pygments import formatters
 from pygments import lexers
 import sys
 import util
+import uuid
 
 
 application = bottle.app()
@@ -55,10 +56,29 @@ def redirect_http_to_https(callback):
             return callback(*args, **kwargs)
     return wrapper
 
-application.install(redirect_http_to_https)
 
+# Authentication middleware
+def authentication(callback):
+    '''Bottle plugin that authenticates the user'''
+
+    def wrapper(*args, **kwargs):
+
+        unique_id = bottle.request.get_cookie("token")
+        
+        if unique_id in current_users.keys():
+            bottle.request.username = current_users[unique_id]
+        else:
+            bottle.request.username = None
+
+        return callback(*args, **kwargs)
+    return wrapper
+
+
+application.install(redirect_http_to_https)
+application.install(authentication)
 application.install(db_plugin)
 
+current_users = {}
 
 def get_url(path=False):
     (scheme, host, q_path, qs, fragment) = bottle.request.urlparts
@@ -79,6 +99,7 @@ def index():
         url=get_url(),
         title=util.conf.get(util.cfg_section, 'title'),
         version=pasttle.__version__,
+        username=bottle.request.username,
     )
 
 
@@ -108,6 +129,71 @@ def serve_static(filetype, path):
 def serve_icon():
     return serve_static('images', 'icon.png')
 
+@bottle.get('/signup')
+def signup(db):
+    """
+    Sign up a new user
+    """
+    return template(
+        'signup.html',
+        title='New User', url=get_url(), username=bottle.request.username,
+        version=pasttle.__version__,
+    )
+
+@bottle.post('/signup')
+def add_user(db):
+    """
+    Add the new user to the database
+    """
+    username = bottle.request.forms.get('username')
+    password = bottle.request.forms.get('password')
+
+    user = model.User(username=username, password=password)
+    db.add(user)
+    db.commit()
+    return bottle.redirect('{}/'.format(get_url()))
+
+@bottle.post('/login')
+def login(db):
+    """
+    A user has requested to be logged in to the application with 
+    username and password.
+    """
+    username = bottle.request.forms.get('username')
+    password = bottle.request.forms.get('password')
+
+    try:
+        user = db.query(model.User).filter_by(username=username).one()
+    except:
+        return bottle.HTTPError(403, 'Username or password incorrect')
+
+    print(user.username, user.password)
+
+    if user.password == password:
+        # User is authenticated, set the session token
+        unique_id = str(uuid.uuid4())
+        current_users[unique_id] = username
+        bottle.response.set_cookie("token", unique_id, httponly=True, secure=True)
+        return template(
+            'login.html',
+            title='Logged in', url=get_url(),
+            version=pasttle.__version__,
+            username=username,
+        )
+    else:
+        return bottle.HTTPError(403, 'Username or password incorrect')
+
+@bottle.get('/logout')
+def logout(db):
+    """
+    Log out of the current session.
+    """
+    unique_id = bottle.request.get_cookie("token")
+    if unique_id in current_users.keys():
+        del current_users[unique_id]
+    bottle.response.set_cookie("token", "", expires=0)
+    return bottle.redirect('{}/'.format(get_url()))
+
 
 @bottle.get('/recent')
 def recent(db):
@@ -128,6 +214,7 @@ def recent(db):
             title=util.conf.get(util.cfg_section, 'title'),
             recent=items,
             version=pasttle.__version__,
+            username=bottle.request.username
         )
     )
 
@@ -142,6 +229,7 @@ def upload_file():
         title='Paste New', content='', password='',
         checked='', syntax='', url=get_url(),
         version=pasttle.__version__,
+        username=bottle.request.username
     )
 
 
@@ -298,6 +386,7 @@ def _pygmentize(paste, lang):
         id=paste.id,
         parent=paste.parent or u'',
         pygments_style=util.conf.get(util.cfg_section, 'pygments_style'),
+        username=bottle.request.username
     )
 
 
@@ -340,6 +429,7 @@ def showdiff(db, parent, id):
         id=id,
         parent=parent,
         pygments_style=util.conf.get(util.cfg_section, 'pygments_style'),
+        username=bottle.request.username
     )
 
 

@@ -9,11 +9,23 @@ import os
 import sqlalchemy
 from sqlalchemy import func
 from sqlalchemy.ext import declarative
+from sqlalchemy_utils import PasswordType
 import util
 
 
 # Subclass declarative base for sqla objects
 Base = declarative.declarative_base()
+
+class User(Base):
+
+    __tablename__ = 'user'
+
+    username = sqlalchemy.Column(sqlalchemy.String(128), primary_key=True)
+    password = sqlalchemy.Column(PasswordType(schemes=['pbkdf2_sha512']))
+
+    def __init__(self, username, password):
+        self.username = username[:128]
+        self.password = password
 
 
 class Paste(Base):

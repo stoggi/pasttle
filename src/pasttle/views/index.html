@@ -12,11 +12,18 @@
       <div class="section separator">
         <h2>Login</h2>
         <p>Login to create private pastes.</p>
-        <form action="{{url}}/login" method="POST">
-        <input type="text" name="username" placeholder="username"/>
-        <input type="password" name="password" placeholder="password"/>
-        <input type="submit" text="Login"/>
-        </form>
+
+        %if username:
+          <p>Hello {{!username}}! <a href="{{url}}/logout">Logout</a></p>
+        %else:
+          <form action="{{url}}/login" method="POST">
+            <input type="text" name="username" placeholder="username"/>
+            <input type="password" name="password" placeholder="password"/>
+            <input type="submit" text="Login"/>
+          </form>
+          <p>Or <a href="{{url}}/signup">create an account</a></p>
+        %end
+        
       </div><!--end of section-->
       <div class="section separator">
         <h2>CLI Examples:</h2>
