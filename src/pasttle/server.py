@@ -20,7 +20,10 @@ from pygments import lexers
 import sys
 import util
 import uuid
+import redis
 
+redis_url = os.getenv('REDISTOGO_URL', 'redis://localhost:6379')
+redis = redis.from_url(redis_url)
 
 application = bottle.app()
 
@@ -64,11 +67,7 @@ def authentication(callback):
     def wrapper(*args, **kwargs):
 
         unique_id = bottle.request.get_cookie("token")
-        
-        if unique_id in current_users.keys():
-            bottle.request.username = current_users[unique_id]
-        else:
-            bottle.request.username = None
+        bottle.request.username = redis.get(unique_id)
 
         return callback(*args, **kwargs)
     return wrapper
@@ -77,8 +76,6 @@ def authentication(callback):
 application.install(redirect_http_to_https)
 application.install(authentication)
 application.install(db_plugin)
-
-current_users = {}
 
 def get_url(path=False):
     (scheme, host, q_path, qs, fragment) = bottle.request.urlparts
@@ -172,7 +169,7 @@ def login(db):
     if user.password == password:
         # User is authenticated, set the session token
         unique_id = str(uuid.uuid4())
-        current_users[unique_id] = username
+        redis.set(unique_id, username)
         bottle.response.set_cookie("token", unique_id, httponly=True, secure=True)
         return template(
             'login.html',
@@ -189,8 +186,7 @@ def logout(db):
     Log out of the current session.
     """
     unique_id = bottle.request.get_cookie("token")
-    if unique_id in current_users.keys():
-        del current_users[unique_id]
+    redis.delete(unique_id)
     bottle.response.set_cookie("token", "", expires=0)
     return bottle.redirect('{}/'.format(get_url()))
 

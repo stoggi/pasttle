@@ -23,7 +23,8 @@ install_requires = [
     "IPy==0.81",
     "gunicorn==19.3.0",
     "sqlalchemy-utils==0.30.17",
-    "passlib==1.6.5"
+    "passlib==1.6.5",
+    "redis==2.10.3"
 ]
 
 if sys.version_info >= (3,):
